@@ -149,7 +149,6 @@
   width: 50%;
   z-index: 100;
   cursor: pointer;
-  transition: background-color 0.2s ease;
 }
 
 .reader__nav-area--left {
@@ -158,54 +157,6 @@
 
 .reader__nav-area--right {
   right: 0;
-}
-
-/* Subtle hover effect to show clickable areas */
-.reader__nav-area:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.reader--dark .reader__nav-area:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Optional: Add visual indicators on hover */
-.reader__nav-area::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-.reader__nav-area--left::before {
-  left: 20px;
-  border-top: 15px solid transparent;
-  border-bottom: 15px solid transparent;
-  border-right: 20px solid rgba(0, 0, 0, 0.3);
-}
-
-.reader__nav-area--right::before {
-  right: 20px;
-  border-top: 15px solid transparent;
-  border-bottom: 15px solid transparent;
-  border-left: 20px solid rgba(0, 0, 0, 0.3);
-}
-
-.reader--dark .reader__nav-area--left::before {
-  border-right-color: rgba(255, 255, 255, 0.3);
-}
-
-.reader--dark .reader__nav-area--right::before {
-  border-left-color: rgba(255, 255, 255, 0.3);
-}
-
-.reader__nav-area:hover::before {
-  opacity: 1;
 }
 
 .reader__settings {
@@ -371,14 +322,5 @@
   
   .reader__title {
     max-width: 200px;
-  }
-  
-  /* Make click areas more prominent on mobile */
-  .reader__nav-area:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-  
-  .reader--dark .reader__nav-area:hover {
-    background-color: rgba(255, 255, 255, 0.1);
   }
 }
