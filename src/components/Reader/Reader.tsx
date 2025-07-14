@@ -83,7 +83,7 @@ export const Reader: React.FC<ReaderProps> = ({
 
         // Check for saved reading position
         const savedProgress = storageService.getBookProgress(book.id);
-        
+
         // Display the book - either at saved location or from beginning
         if (savedProgress && savedProgress.location) {
           console.log('📖 Reader: Restoring saved reading position:', Math.round(savedProgress.progress * 100) + '%');
@@ -92,7 +92,7 @@ export const Reader: React.FC<ReaderProps> = ({
           console.log('📖 Reader: Starting from beginning');
           await rendition.display();
         }
-        
+
         console.log('📖 Reader: Book displayed');
 
         // Set up navigation event listeners
@@ -240,6 +240,80 @@ export const Reader: React.FC<ReaderProps> = ({
     }
   }, []);
 
+  // Add document-level keyboard navigation for better reliability
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle keys when the reader is active and no input is focused
+      if (document.activeElement?.tagName === 'INPUT' ||
+          document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'PageUp':
+          event.preventDefault();
+          goToPrevPage();
+          break;
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ': // Spacebar
+          event.preventDefault();
+          goToNextPage();
+          break;
+        case 'Home':
+          event.preventDefault();
+          // Go to beginning of book
+          if (renditionRef.current && bookRef.current) {
+            renditionRef.current.display(bookRef.current.spine.first().href);
+          }
+          break;
+        case 'End':
+          event.preventDefault();
+          // Go to end of book
+          if (renditionRef.current && bookRef.current) {
+            renditionRef.current.display(bookRef.current.spine.last().href);
+          }
+          break;
+        case 'Escape':
+          event.preventDefault();
+          // Close settings/TOC panels or close reader
+          if (showSettings) {
+            setShowSettings(false);
+          } else if (showTOC) {
+            setShowTOC(false);
+          } else {
+            onClose();
+          }
+          break;
+        case 't':
+        case 'T':
+          // Toggle table of contents
+          if (!showSettings) {
+            event.preventDefault();
+            setShowTOC(!showTOC);
+          }
+          break;
+        case 's':
+        case 'S':
+          // Toggle settings
+          if (!showTOC) {
+            event.preventDefault();
+            setShowSettings(!showSettings);
+          }
+          break;
+      }
+    };
+
+    // Add event listener to document
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [goToPrevPage, goToNextPage, showSettings, showTOC, onClose]);
+
   // Update settings when they change
   useEffect(() => {
     if (renditionRef.current) {
@@ -300,14 +374,16 @@ export const Reader: React.FC<ReaderProps> = ({
           <button
             className="reader__button"
             onClick={() => setShowTOC(!showTOC)}
-            aria-label="Table of contents"
+            aria-label="Table of contents (T)"
+            title="Table of contents (Press T)"
           >
             📑
           </button>
           <button
             className="reader__button"
             onClick={() => setShowSettings(!showSettings)}
-            aria-label="Settings"
+            aria-label="Settings (S)"
+            title="Settings (Press S)"
           >
             ⚙️
           </button>
@@ -396,13 +472,13 @@ export const Reader: React.FC<ReaderProps> = ({
             className="reader__nav-area reader__nav-area--left"
             onClick={goToPrevPage}
             aria-label="Previous page"
-            title="Click to go to previous page"
+            title="Previous page (← or Page Up)"
           />
           <div
             className="reader__nav-area reader__nav-area--right"
             onClick={goToNextPage}
             aria-label="Next page"
-            title="Click to go to next page"
+            title="Next page (→, Page Down, or Space)"
           />
         </div>
       </div>
@@ -413,19 +489,17 @@ export const Reader: React.FC<ReaderProps> = ({
           position: 'fixed',
           bottom: '10px',
           left: '10px',
-          background: 'rgba(0,0,0,0.8)',
+          background: 'rgba(0,0,0,0.9)',
           color: 'white',
-          padding: '10px',
-          fontSize: '12px',
-          borderRadius: '4px',
-          zIndex: 1000
+          padding: '12px',
+          fontSize: '11px',
+          borderRadius: '6px',
+          zIndex: 1000,
+          maxWidth: '250px'
         }}>
-          <div>Progress: {Math.round(progress * 100)}%</div>
-          {/* <div>Rendition: {renditionRef.current ? '✅' : '❌'}</div>
-          <div>Book: {bookRef.current ? '✅' : '❌'}</div>
-          <div style={{ marginTop: '5px', fontSize: '10px', opacity: 0.7 }}>
-            Click left half ← | Click right half →
-          </div> */}
+          <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+            Progress: {Math.round(progress * 100)}%
+          </div>
         </div>
       )}
     </div>
