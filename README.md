@@ -6,8 +6,12 @@ A modern e-reader application built with React, TypeScript, and epub.js that pro
 
 - **Book Library**: Browse and discover books from the JPC OPDS catalog (https://ebooks.jpc.io/opds)
 - **EPUB Reader**: Full-featured reading experience powered by epub.js
+- **Direct Book Links**: Share and bookmark direct links to specific books
+- **Keyboard Navigation**: Full keyboard support with arrow keys, spacebar, and shortcuts
+- **Reading Progress**: Automatic progress tracking and resume functionality
 - **Responsive Design**: Works on desktop and mobile devices
 - **Modern UI**: Clean, intuitive interface built with React and TypeScript
+- **PWA Support**: Install as a progressive web app with offline capabilities
 - **Fast Performance**: Optimized with Vite for quick loading and hot module replacement
 
 ## Requirements
@@ -119,12 +123,59 @@ The proxy handles cross-origin requests by:
 
 No additional setup is required as the proxy is already hosted and configured.
 
+## URL Structure
+
+The application supports direct linking to books using React Router:
+
+- **Home/Library**: `/` - Browse all available books
+- **Reader**: `/read/{bookId}` - Open a specific book directly
+
+### Direct Book Links
+
+You can share direct links to specific books:
+```
+https://your-domain.com/read/book-id-here
+```
+
+The book ID is automatically URL-encoded, so books with special characters in their IDs work correctly. When someone visits a direct book link:
+
+1. The app loads the book library
+2. Finds the requested book by ID
+3. Opens the book directly in the reader
+4. If the book isn't found, shows a "Book Not Found" error with a link back to the library
+
+### Sharing Books
+
+In the reader, click the 🔗 share button in the header to copy the direct link to your clipboard. This makes it easy to bookmark specific books or share them with others.
+
 ## Usage
 
 1. **Browse Books**: The app loads books from the JPC OPDS catalog on startup
 2. **Select Book**: Click on any book cover or title to open it in the reader
 3. **Read**: Use navigation controls to move through pages, access table of contents, and adjust reading settings
 4. **Customize**: Switch between light/dark themes and adjust text size for comfortable reading
+
+### Keyboard Navigation
+
+The reader supports comprehensive keyboard shortcuts for efficient navigation:
+
+**Page Navigation:**
+- `←` `→` Arrow keys: Previous/Next page
+- `Page Up` `Page Down`: Previous/Next page
+- `Spacebar`: Next page (common e-reader convention)
+
+**Book Navigation:**
+- `Home`: Jump to first page
+- `End`: Jump to last page
+
+**Interface Controls:**
+- `T`: Toggle Table of Contents
+- `S`: Toggle Settings panel
+- `Escape`: Close panels or exit reader
+
+**Click Navigation:**
+- Click left half of screen: Previous page
+- Click right half of screen: Next page
 
 ## Development
 

@@ -387,6 +387,23 @@ export const Reader: React.FC<ReaderProps> = ({
           >
             ⚙️
           </button>
+          <button
+            className="reader__button"
+            onClick={() => {
+              const url = `${window.location.origin}/read/${encodeURIComponent(book.id)}`;
+              navigator.clipboard.writeText(url).then(() => {
+                // You could add a toast notification here
+                console.log('📋 Reader: Book URL copied to clipboard:', url);
+              }).catch(() => {
+                // Fallback for older browsers
+                console.log('📋 Reader: Share URL:', url);
+              });
+            }}
+            aria-label="Share book"
+            title="Copy link to this book"
+          >
+            🔗
+          </button>
         </div>
       </header>
 
