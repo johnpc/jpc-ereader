@@ -5,7 +5,6 @@ interface NavigationProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearchClear: () => void;
-  onRefresh: () => void;
   isSearching: boolean;
   totalBooks: number;
 }
@@ -14,7 +13,6 @@ export const Navigation: React.FC<NavigationProps> = ({
   searchQuery,
   onSearchChange,
   onSearchClear,
-  onRefresh,
   isSearching,
   totalBooks,
 }) => {
@@ -36,7 +34,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Logo/Title */}
         <div className="navigation__brand">
           <h1 className="navigation__title">
-            📚 JPC E-Reader
+            📚 ereader.jpc
           </h1>
           <span className="navigation__subtitle">
             {totalBooks} books available
@@ -49,7 +47,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             <div className="navigation__search-input-container">
               <input
                 type="text"
-                placeholder="Search books by title or author..."
+                placeholder="Title, author, etc..."
                 value={searchQuery}
                 onChange={handleSearchInput}
                 className="navigation__search-input"
@@ -67,24 +65,12 @@ export const Navigation: React.FC<NavigationProps> = ({
               )}
             </div>
           </form>
-          
+
           {isSearching && (
             <div className="navigation__search-status">
-              Searching for "{searchQuery}"...
+              🔍 Filtering "{searchQuery}"
             </div>
           )}
-        </div>
-
-        {/* Actions */}
-        <div className="navigation__actions">
-          <button
-            onClick={onRefresh}
-            className="navigation__refresh-button"
-            aria-label="Refresh book catalog"
-            title="Refresh book catalog"
-          >
-            🔄
-          </button>
         </div>
       </div>
     </nav>

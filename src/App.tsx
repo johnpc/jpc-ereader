@@ -14,7 +14,6 @@ function App() {
     searchQuery,
     handleSearch,
     clearSearch,
-    refreshBooks,
     isSearching,
   } = useBooks();
 
@@ -81,7 +80,6 @@ function App() {
               searchQuery={searchQuery}
               onSearchChange={handleSearch}
               onSearchClear={clearSearch}
-              onRefresh={refreshBooks}
               isSearching={isSearching}
               totalBooks={library.books.length}
             />

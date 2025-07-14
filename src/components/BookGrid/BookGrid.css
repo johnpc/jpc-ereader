@@ -124,7 +124,7 @@
   }
 }
 
-/* Responsive design */
+/* Responsive design - Desktop and Tablet */
 @media (max-width: 1200px) {
   .book-grid__container {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -134,11 +134,11 @@
 
 @media (max-width: 768px) {
   .book-grid {
-    padding: 16px;
+    padding: 16px 12px;
   }
   
   .book-grid__container {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
   }
   
@@ -154,9 +154,54 @@
   }
 }
 
-@media (max-width: 480px) {
+/* Mobile - Vertical List Layout */
+@media (max-width: 640px) {
+  .book-grid {
+    padding: 12px 8px;
+  }
+  
   .book-grid__container {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    /* Switch to single column vertical list */
+    grid-template-columns: 1fr;
     gap: 8px;
+    max-width: 100%;
+  }
+  
+  .book-grid__loading,
+  .book-grid__error,
+  .book-grid__empty {
+    padding: 30px 12px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .book-grid {
+    padding: 8px 4px;
+  }
+  
+  .book-grid__container {
+    gap: 6px;
+  }
+  
+  .book-grid__loading,
+  .book-grid__error,
+  .book-grid__empty {
+    padding: 24px 8px;
+  }
+  
+  .book-grid__error-icon,
+  .book-grid__empty-icon {
+    font-size: 32px;
+  }
+  
+  .book-grid__error h3,
+  .book-grid__empty h3 {
+    font-size: 1.1rem;
+  }
+  
+  .book-grid__error p,
+  .book-grid__empty p {
+    font-size: 0.9rem;
   }
 }

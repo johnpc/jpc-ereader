@@ -1,5 +1,5 @@
 // JPC E-Reader Service Worker
-const CACHE_NAME = 'jpc-ereader-v1';
+const CACHE_NAME = 'jpc-ereader-v2'; // Updated cache version to force refresh
 const STATIC_CACHE_URLS = [
   '/',
   '/manifest.json',

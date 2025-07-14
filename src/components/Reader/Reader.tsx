@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { Book } from '../../types/book';
 import type { ReaderSettings, TableOfContentsItem } from '../../types/reader';
 import { epubService } from '../../services/epubService';
+import { storageService } from '../../services/storageService';
 import './Reader.css';
 
 interface ReaderProps {
@@ -80,8 +81,18 @@ export const Reader: React.FC<ReaderProps> = ({
         // Apply current settings
         applySettings(rendition, settings);
 
-        // Display the book
-        await rendition.display();
+        // Check for saved reading position
+        const savedProgress = storageService.getBookProgress(book.id);
+        
+        // Display the book - either at saved location or from beginning
+        if (savedProgress && savedProgress.location) {
+          console.log('📖 Reader: Restoring saved reading position:', Math.round(savedProgress.progress * 100) + '%');
+          await rendition.display(savedProgress.location);
+        } else {
+          console.log('📖 Reader: Starting from beginning');
+          await rendition.display();
+        }
+        
         console.log('📖 Reader: Book displayed');
 
         // Set up navigation event listeners

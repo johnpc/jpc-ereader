@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Book, BookLibrary } from '../types/book';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { BookLibrary } from '../types/book';
 import { opdsService } from '../services/opdsService';
+import { fuzzySearchBooks } from '../utils/fuzzySearch';
+import { sortBooksByPriority, getBookSortingStats } from '../utils/bookSorting';
 
 export const useBooks = () => {
   const [library, setLibrary] = useState<BookLibrary>({
@@ -10,7 +12,38 @@ export const useBooks = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
+
+  // Use useMemo to efficiently filter and sort books when search query or library changes
+  const filteredBooks = useMemo(() => {
+    console.log('🔍 useBooks: Filtering and sorting books with query:', searchQuery);
+    console.log('🔍 useBooks: Total books to search:', library.books.length);
+    
+    let results;
+    
+    if (!searchQuery.trim()) {
+      console.log('🔍 useBooks: No search query, using all books');
+      results = library.books;
+    } else {
+      results = fuzzySearchBooks(library.books, searchQuery);
+      console.log('🔍 useBooks: Fuzzy search returned', results.length, 'books');
+    }
+    
+    // Apply sorting: recently read → most progress → alphabetical
+    const sortedResults = sortBooksByPriority(results);
+    console.log('📊 useBooks: Applied priority sorting to', sortedResults.length, 'books');
+    
+    // Log sorting statistics for debugging
+    const stats = getBookSortingStats(sortedResults);
+    console.log('📊 useBooks: Sorting stats:', {
+      totalBooks: stats.totalBooks,
+      withProgress: stats.withProgress,
+      withLastRead: stats.withLastRead,
+      mostRecentRead: stats.mostRecentRead,
+      highestProgress: `${stats.highestProgress}%`
+    });
+    
+    return sortedResults;
+  }, [library.books, searchQuery]);
 
   const fetchBooks = useCallback(async () => {
     console.log('🚀 useBooks: Starting fetchBooks...');
@@ -40,8 +73,6 @@ export const useBooks = () => {
         error: null,
       });
       
-      setFilteredBooks(books);
-      
       console.log('✅ useBooks: Successfully updated library state with', books.length, 'books');
     } catch (error) {
       console.error('❌ useBooks: Error fetching books:', error);
@@ -58,72 +89,24 @@ export const useBooks = () => {
     }
   }, []);
 
-  const searchBooks = useCallback(async (query: string) => {
-    console.log('🔍 useBooks: Starting searchBooks with query:', query);
-    
-    if (!query.trim()) {
-      console.log('🔍 useBooks: Empty query, showing all books');
-      setFilteredBooks(library.books);
-      return;
-    }
-
-    setLibrary(prev => ({ ...prev, loading: true }));
-    
-    try {
-      console.log('📡 useBooks: Calling opdsService.searchBooks()...');
-      const results = await opdsService.searchBooks(query);
-      
-      console.log('🔍 useBooks: Search returned', results.length, 'books');
-      setFilteredBooks(results);
-      
-      console.log('✅ useBooks: Successfully updated filtered books');
-    } catch (error) {
-      console.error('❌ useBooks: Error searching books, falling back to local filtering:', error);
-      
-      // Fallback to local filtering
-      const localResults = library.books.filter(book =>
-        book.title.toLowerCase().includes(query.toLowerCase()) ||
-        book.author.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      console.log('🔍 useBooks: Local filtering returned', localResults.length, 'books');
-      setFilteredBooks(localResults);
-    } finally {
-      setLibrary(prev => ({ ...prev, loading: false }));
-    }
-  }, [library.books]);
-
   const handleSearch = useCallback((query: string) => {
     console.log('🔍 useBooks: handleSearch called with query:', query);
+    console.log('🚫 useBooks: NO NETWORK CALLS - Using local fuzzy search only');
     setSearchQuery(query);
-    searchBooks(query);
-  }, [searchBooks]);
+    // No need to call any async function - useMemo will handle the filtering
+  }, []);
 
   const clearSearch = useCallback(() => {
     console.log('🧹 useBooks: Clearing search...');
     setSearchQuery('');
-    setFilteredBooks(library.books);
-    console.log('🧹 useBooks: Search cleared, showing', library.books.length, 'books');
-  }, [library.books]);
-
-  const refreshBooks = useCallback(() => {
-    console.log('🔄 useBooks: Refreshing books...');
-    fetchBooks();
-  }, [fetchBooks]);
+    console.log('🧹 useBooks: Search cleared');
+  }, []);
 
   // Initial load
   useEffect(() => {
     console.log('🎬 useBooks: Component mounted, starting initial fetch...');
     fetchBooks();
   }, [fetchBooks]);
-
-  // Update filtered books when library changes
-  useEffect(() => {
-    if (!searchQuery) {
-      console.log('📊 useBooks: Library changed, updating filtered books (no search query)');
-      setFilteredBooks(library.books);
-    }
-  }, [library.books, searchQuery]);
 
   // Log state changes
   useEffect(() => {
@@ -143,7 +126,6 @@ export const useBooks = () => {
     searchQuery,
     handleSearch,
     clearSearch,
-    refreshBooks,
     isSearching: !!searchQuery,
   };
 };

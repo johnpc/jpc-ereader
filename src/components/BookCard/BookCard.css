@@ -9,6 +9,7 @@
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   height: 100%;
+  position: relative;
 }
 
 .book-card:hover {
@@ -22,6 +23,16 @@
   outline-offset: 2px;
 }
 
+/* Special styling for books with progress */
+.book-card--has-progress {
+  border: 2px solid var(--primary-color, #007bff);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.book-card--has-progress:hover {
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3);
+}
+
 .book-card__cover {
   display: flex;
   justify-content: center;
@@ -30,6 +41,7 @@
   height: 200px;
   overflow: hidden;
   border-radius: 4px;
+  position: relative;
 }
 
 .book-card__cover-image {
@@ -37,6 +49,11 @@
   height: 100%;
   object-fit: cover;
   border-radius: 4px;
+  transition: transform 0.3s ease;
+}
+
+.book-card:hover .book-card__cover-image {
+  transform: scale(1.05);
 }
 
 .book-card__cover-placeholder {
@@ -53,6 +70,51 @@
 .book-card__cover-icon {
   font-size: 48px;
   opacity: 0.5;
+}
+
+/* Progress overlay */
+.book-card__progress-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.book-card__progress-circle {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.book-card__progress-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.book-card__progress-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 2;
+}
+
+.book-card__progress-bar {
+  fill: none;
+  stroke: var(--primary-color, #007bff);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+.book-card__progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .book-card__content {
@@ -82,6 +144,50 @@
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Reading progress info */
+.book-card__reading-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.book-card__continue-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color, #007bff);
+  background: rgba(0, 123, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.book-card__last-read {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.book-card__last-read strong {
+  color: var(--primary-color, #007bff);
+  font-weight: 600;
+  font-style: normal;
+}
+
+.book-card__sort-priority {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
 }
 
 .book-card__description {
@@ -121,33 +227,147 @@
     --border-color: #404040;
     --text-primary: #ffffff;
     --text-secondary: #cccccc;
+    --text-tertiary: #999999;
     --tag-background: #404040;
     --tag-text: #cccccc;
     --primary-color: #4dabf7;
   }
+
+  .book-card--has-progress {
+    box-shadow: 0 2px 8px rgba(77, 171, 247, 0.2);
+  }
+
+  .book-card--has-progress:hover {
+    box-shadow: 0 4px 16px rgba(77, 171, 247, 0.3);
+  }
+
+  .book-card__continue-badge {
+    background: rgba(77, 171, 247, 0.2);
+  }
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+/* Mobile - Horizontal List Item Layout */
+@media (max-width: 640px) {
   .book-card {
+    /* Switch to horizontal layout on mobile */
+    flex-direction: row;
     padding: 12px;
+    gap: 12px;
+    align-items: flex-start;
   }
   
   .book-card__cover {
-    height: 160px;
-    margin-bottom: 8px;
+    /* Fixed size cover on mobile */
+    width: 80px;
+    height: 120px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .book-card__progress-circle {
+    width: 30px;
+    height: 30px;
+    top: 4px;
+    right: 4px;
+  }
+
+  .book-card__progress-text {
+    font-size: 8px;
   }
   
+  .book-card__content {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+    gap: 4px;
+  }
+
   .book-card__title {
-    font-size: 15px;
+    font-size: 0.95rem;
+    -webkit-line-clamp: 2;
+    margin-bottom: 4px;
   }
   
   .book-card__author {
-    font-size: 13px;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .book-card__reading-info {
+    gap: 3px;
+    margin-bottom: 6px;
+  }
+
+  .book-card__continue-badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  .book-card__last-read {
+    font-size: 10px;
   }
   
   .book-card__description {
-    font-size: 12px;
+    font-size: 0.8rem;
     -webkit-line-clamp: 2;
+    margin-bottom: 8px;
+  }
+
+  .book-card__categories {
+    gap: 3px;
+    margin-top: auto;
+  }
+
+  .book-card__category {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+/* Very small screens - Compact layout */
+@media (max-width: 480px) {
+  .book-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .book-card__cover {
+    width: 70px;
+    height: 105px;
+  }
+
+  .book-card__progress-circle {
+    width: 28px;
+    height: 28px;
+  }
+
+  .book-card__progress-text {
+    font-size: 7px;
+  }
+
+  .book-card__title {
+    font-size: 0.9rem;
+  }
+  
+  .book-card__author {
+    font-size: 0.8rem;
+  }
+
+  .book-card__continue-badge {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+
+  .book-card__last-read {
+    font-size: 9px;
+  }
+  
+  .book-card__description {
+    font-size: 0.75rem;
+    -webkit-line-clamp: 1;
+  }
+
+  .book-card__category {
+    font-size: 9px;
+    padding: 1px 3px;
   }
 }

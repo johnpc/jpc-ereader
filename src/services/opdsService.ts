@@ -312,36 +312,6 @@ export class OPDSService {
       throw error;
     }
   }
-
-  async searchBooks(query: string): Promise<Book[]> {
-    console.log('🔍 OPDSService: Starting searchBooks with query:', query);
-    
-    try {
-      const searchUrl = `https://cors-proxy.jpc.io/api/proxy?url=${encodeURIComponent('https://ebooks.jpc.io/opds/search?q=' + encodeURIComponent(query))}`;
-      console.log('🔍 OPDSService: Search URL:', searchUrl);
-      
-      const xmlData = await this.fetchXML(searchUrl);
-      const feed = await this.parseOPDSFeed(xmlData);
-      
-      const books = feed.entries
-        .map(entry => this.convertOPDSEntryToBook(entry))
-        .filter((book): book is Book => book !== null);
-
-      console.log('🔍 OPDSService: Search returned', books.length, 'books');
-      return books;
-    } catch (error) {
-      console.error('❌ OPDSService: Error searching books:', error);
-      // Fallback to local filtering if search endpoint doesn't exist
-      console.log('🔄 OPDSService: Falling back to local filtering...');
-      const allBooks = await this.fetchBooks();
-      const filteredBooks = allBooks.filter(book => 
-        book.title.toLowerCase().includes(query.toLowerCase()) ||
-        book.author.toLowerCase().includes(query.toLowerCase())
-      );
-      console.log('🔍 OPDSService: Local filtering returned', filteredBooks.length, 'books');
-      return filteredBooks;
-    }
-  }
 }
 
 export const opdsService = new OPDSService();

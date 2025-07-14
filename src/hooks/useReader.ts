@@ -1,20 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ReaderState, ReaderSettings, BookProgress, Bookmark } from '../types/reader';
+import type { ReaderState, ReaderSettings, Bookmark } from '../types/reader';
 import type { Book } from '../types/book';
 import { epubService } from '../services/epubService';
+import { storageService } from '../services/storageService';
 
 const DEFAULT_SETTINGS: ReaderSettings = {
   fontSize: 16,
-  theme: 'light',
+  theme: 'dark',
   fontFamily: 'serif',
   lineHeight: 1.6,
   margin: 20,
-};
-
-const STORAGE_KEYS = {
-  SETTINGS: 'ereader-settings',
-  PROGRESS: 'ereader-progress',
-  BOOKMARKS: 'ereader-bookmarks',
 };
 
 export const useReader = () => {
@@ -27,55 +22,22 @@ export const useReader = () => {
     tableOfContents: [],
   });
 
-  // Load saved data from localStorage
+  // Load saved data from localStorage on mount
   useEffect(() => {
     try {
-      const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      const savedProgress = localStorage.getItem(STORAGE_KEYS.PROGRESS);
-      const savedBookmarks = localStorage.getItem(STORAGE_KEYS.BOOKMARKS);
-
+      console.log('📚 useReader: Loading saved data from localStorage...');
+      
+      // Load global settings (now always returns settings, with dark mode as default)
+      const settings = storageService.getGlobalSettings();
+      
+      console.log('⚙️ useReader: Loaded settings:', settings);
+      
       setReaderState(prev => ({
         ...prev,
-        settings: savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS,
-        progress: savedProgress ? JSON.parse(savedProgress) : {},
-        bookmarks: savedBookmarks ? JSON.parse(savedBookmarks) : [],
+        settings
       }));
     } catch (error) {
-      console.error('Error loading reader data from localStorage:', error);
-    }
-  }, []);
-
-  // Save settings to localStorage
-  const saveSettings = useCallback((settings: ReaderSettings) => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      setReaderState(prev => ({ ...prev, settings }));
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    }
-  }, []);
-
-  // Save progress to localStorage
-  const saveProgress = useCallback((bookId: string, progress: Omit<BookProgress, 'bookId'>) => {
-    try {
-      const newProgress = {
-        ...readerState.progress,
-        [bookId]: { ...progress, bookId },
-      };
-      localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(newProgress));
-      setReaderState(prev => ({ ...prev, progress: newProgress }));
-    } catch (error) {
-      console.error('Error saving progress:', error);
-    }
-  }, [readerState.progress]);
-
-  // Save bookmarks to localStorage
-  const saveBookmarks = useCallback((bookmarks: Bookmark[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(bookmarks));
-      setReaderState(prev => ({ ...prev, bookmarks }));
-    } catch (error) {
-      console.error('Error saving bookmarks:', error);
+      console.error('❌ useReader: Error loading reader data from localStorage:', error);
     }
   }, []);
 
@@ -84,11 +46,21 @@ export const useReader = () => {
     try {
       console.log('📖 useReader: Starting to open book:', book.title);
       
+      // Add to reading history
+      storageService.addToReadingHistory(book.id, book.title, book.author);
+      
+      // Load the book
       await epubService.loadBook(book);
       console.log('📖 useReader: Book loaded successfully, getting TOC...');
       
       const toc = await epubService.getTableOfContents(book.id);
       console.log('📖 useReader: TOC retrieved, length:', toc.length);
+      
+      // Get book-specific settings or use global settings
+      const bookSettings = storageService.getBookSettings(book.id);
+      const settingsToUse = bookSettings || readerState.settings;
+      
+      console.log('📖 useReader: Using settings for book:', settingsToUse);
       
       console.log('📖 useReader: Setting reader state...');
       setReaderState(prev => {
@@ -97,6 +69,7 @@ export const useReader = () => {
           currentBook: book.id,
           isReaderOpen: true,
           tableOfContents: toc,
+          settings: settingsToUse
         };
         console.log('📖 useReader: New reader state:', newState);
         return newState;
@@ -107,10 +80,11 @@ export const useReader = () => {
       console.error('❌ useReader: Error opening book:', error);
       throw error;
     }
-  }, []);
+  }, [readerState.settings]);
 
   // Close reader
   const closeReader = useCallback(() => {
+    console.log('📖 useReader: Closing reader');
     setReaderState(prev => ({
       ...prev,
       currentBook: null,
@@ -122,10 +96,56 @@ export const useReader = () => {
   // Update reader settings
   const updateSettings = useCallback((newSettings: Partial<ReaderSettings>) => {
     const updatedSettings = { ...readerState.settings, ...newSettings };
-    saveSettings(updatedSettings);
-  }, [readerState.settings, saveSettings]);
+    
+    console.log('⚙️ useReader: Updating settings:', newSettings);
+    
+    // Save as global settings
+    storageService.saveGlobalSettings(updatedSettings);
+    
+    // If we have a current book, also save book-specific settings
+    if (readerState.currentBook) {
+      storageService.saveBookSettings(readerState.currentBook, updatedSettings);
+    }
+    
+    setReaderState(prev => ({ ...prev, settings: updatedSettings }));
+  }, [readerState.settings, readerState.currentBook]);
 
-  // Add bookmark
+  // Update reading progress
+  const updateProgress = useCallback((location: string, progress: number) => {
+    if (!readerState.currentBook) return;
+    
+    console.log('📊 useReader: Updating progress:', Math.round(progress * 100) + '%');
+    
+    // Save progress to storage service
+    storageService.saveBookProgress(readerState.currentBook, location, progress);
+    
+    // Update local state for immediate UI feedback
+    setReaderState(prev => ({
+      ...prev,
+      progress: {
+        ...prev.progress,
+        [readerState.currentBook!]: {
+          bookId: readerState.currentBook!,
+          currentLocation: location,
+          progress,
+          lastRead: new Date(),
+        }
+      }
+    }));
+  }, [readerState.currentBook]);
+
+  // Get saved progress for a book
+  const getBookProgress = useCallback((bookId: string) => {
+    return storageService.getBookProgress(bookId);
+  }, []);
+
+  // Get current book progress
+  const getCurrentBookProgress = useCallback(() => {
+    if (!readerState.currentBook) return null;
+    return storageService.getBookProgress(readerState.currentBook);
+  }, [readerState.currentBook]);
+
+  // Add bookmark (keeping existing functionality)
   const addBookmark = useCallback((bookmark: Omit<Bookmark, 'id' | 'createdAt'>) => {
     const newBookmark: Bookmark = {
       ...bookmark,
@@ -134,14 +154,19 @@ export const useReader = () => {
     };
     
     const updatedBookmarks = [...readerState.bookmarks, newBookmark];
-    saveBookmarks(updatedBookmarks);
-  }, [readerState.bookmarks, saveBookmarks]);
+    setReaderState(prev => ({ ...prev, bookmarks: updatedBookmarks }));
+    
+    // TODO: Integrate bookmarks with storage service in future update
+    console.log('🔖 useReader: Added bookmark:', newBookmark);
+  }, [readerState.bookmarks]);
 
-  // Remove bookmark
+  // Remove bookmark (keeping existing functionality)
   const removeBookmark = useCallback((bookmarkId: string) => {
     const updatedBookmarks = readerState.bookmarks.filter(b => b.id !== bookmarkId);
-    saveBookmarks(updatedBookmarks);
-  }, [readerState.bookmarks, saveBookmarks]);
+    setReaderState(prev => ({ ...prev, bookmarks: updatedBookmarks }));
+    
+    console.log('🗑️ useReader: Removed bookmark:', bookmarkId);
+  }, [readerState.bookmarks]);
 
   // Get bookmarks for current book
   const getCurrentBookBookmarks = useCallback(() => {
@@ -149,32 +174,29 @@ export const useReader = () => {
     return readerState.bookmarks.filter(b => b.bookId === readerState.currentBook);
   }, [readerState.currentBook, readerState.bookmarks]);
 
-  // Get progress for current book
-  const getCurrentBookProgress = useCallback(() => {
-    if (!readerState.currentBook) return null;
-    return readerState.progress[readerState.currentBook] || null;
-  }, [readerState.currentBook, readerState.progress]);
+  // Get reading history
+  const getReadingHistory = useCallback(() => {
+    return storageService.getReadingHistory();
+  }, []);
 
-  // Update reading progress
-  const updateProgress = useCallback((location: string, progress: number) => {
-    if (!readerState.currentBook) return;
-    
-    saveProgress(readerState.currentBook, {
-      currentLocation: location,
-      progress,
-      lastRead: new Date(),
-    });
-  }, [readerState.currentBook, saveProgress]);
+  // Clear progress for a book
+  const clearBookProgress = useCallback((bookId: string) => {
+    storageService.removeBookProgress(bookId);
+    console.log('🧹 useReader: Cleared progress for book:', bookId);
+  }, []);
 
   return {
     readerState,
     openBook,
     closeReader,
     updateSettings,
+    updateProgress,
+    getBookProgress,
+    getCurrentBookProgress,
     addBookmark,
     removeBookmark,
     getCurrentBookBookmarks,
-    getCurrentBookProgress,
-    updateProgress,
+    getReadingHistory,
+    clearBookProgress,
   };
 };
