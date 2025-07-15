@@ -123,6 +123,8 @@ export const Reader: React.FC<ReaderProps> = ({
         if (savedProgress && savedProgress.location) {
           console.log('📖 Reader: Restoring saved reading position:', Math.round(savedProgress.progress * 100) + '%');
           await rendition.display(savedProgress.location);
+          // Set the saved progress immediately
+          setProgress(savedProgress.progress);
         } else {
           console.log('📖 Reader: Starting from beginning');
           await rendition.display();
@@ -133,9 +135,20 @@ export const Reader: React.FC<ReaderProps> = ({
         // Set up navigation event listeners
         setupNavigation(rendition, epubBook);
 
-        // Generate locations for progress tracking
-        epubBook.locations.generate(1024).then(() => {
-          console.log('📖 Reader: Locations generated');
+        // Trigger initial progress calculation after a short delay to ensure rendition is ready
+        setTimeout(() => {
+          if (rendition.location && rendition.location.start) {
+            updateProgress(rendition.location.start.cfi, epubBook);
+          }
+        }, 100);
+
+        // Generate locations for progress tracking with smaller chunks for better accuracy
+        epubBook.locations.generate(600).then(() => {
+          console.log('📖 Reader: Locations generated, total:', epubBook.locations.total);
+          // Update progress after locations are generated
+          if (rendition.location) {
+            updateProgress(rendition.location.start.cfi, epubBook);
+          }
         }).catch((err: any) => {
           console.warn('Could not generate locations:', err);
         });
@@ -191,6 +204,65 @@ export const Reader: React.FC<ReaderProps> = ({
     }
   }, []);
 
+  // Calculate progress from CFI
+  const updateProgress = useCallback((cfi: string, epubBook: any) => {
+    try {
+      let progressPercent = 0;
+
+      if (epubBook.locations && epubBook.locations.total > 0) {
+        // Method 1: Use percentageFromCfi if available (most reliable)
+        if (epubBook.locations.percentageFromCfi) {
+          progressPercent = epubBook.locations.percentageFromCfi(cfi);
+        } 
+        // Method 2: Use locationFromCfi if available
+        else if (epubBook.locations.locationFromCfi) {
+          const currentLocation = epubBook.locations.locationFromCfi(cfi);
+          if (currentLocation >= 0) {
+            progressPercent = currentLocation / epubBook.locations.total;
+          }
+        }
+        // Method 3: Calculate based on CFI position in locations array
+        else if (epubBook.locations.length > 0) {
+          // Find the closest location to our CFI
+          let closestIndex = 0;
+          for (let i = 0; i < epubBook.locations.length; i++) {
+            if (epubBook.locations[i] <= cfi) {
+              closestIndex = i;
+            } else {
+              break;
+            }
+          }
+          progressPercent = closestIndex / epubBook.locations.length;
+        }
+      }
+
+      // Fallback: calculate based on spine position if locations aren't available
+      if (progressPercent === 0) {
+        try {
+          const spineItem = epubBook.spine.get(cfi);
+          if (spineItem && epubBook.spine.length > 0) {
+            const spineIndex = epubBook.spine.spineItems.findIndex((item: any) => item.href === spineItem.href);
+            if (spineIndex >= 0) {
+              progressPercent = spineIndex / epubBook.spine.length;
+            }
+          }
+        } catch (spineError) {
+          console.warn('Error calculating spine-based progress:', spineError);
+        }
+      }
+
+      // Ensure progress is between 0 and 1
+      progressPercent = Math.max(0, Math.min(1, progressPercent));
+      
+      console.log('📊 Reader: Progress calculated:', Math.round(progressPercent * 100) + '%', 
+                  'Method:', epubBook.locations?.total ? 'locations' : 'spine');
+      setProgress(progressPercent);
+      onProgressUpdate(cfi, progressPercent);
+    } catch (error) {
+      console.warn('Error calculating progress:', error);
+    }
+  }, [onProgressUpdate]);
+
   // Set up navigation and event listeners
   const setupNavigation = useCallback((rendition: any, epubBook: any) => {
     if (!rendition || !epubBook) return;
@@ -200,13 +272,7 @@ export const Reader: React.FC<ReaderProps> = ({
       rendition.on('relocated', (location: any) => {
         try {
           const cfi = location.start.cfi;
-
-          // Calculate progress
-          if (epubBook.locations && epubBook.locations.percentageFromCfi) {
-            const progressPercent = epubBook.locations.percentageFromCfi(cfi) || 0;
-            setProgress(progressPercent);
-            onProgressUpdate(cfi, progressPercent);
-          }
+          updateProgress(cfi, epubBook);
         } catch (error) {
           console.warn('Error handling location change:', error);
         }
@@ -225,7 +291,7 @@ export const Reader: React.FC<ReaderProps> = ({
     } catch (error) {
       console.error('Error setting up navigation:', error);
     }
-  }, [onProgressUpdate]);
+  }, [updateProgress]);
 
   // Navigation functions
   const goToNextPage = useCallback(() => {
