@@ -30,6 +30,40 @@ export const Reader: React.FC<ReaderProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showTOC, setShowTOC] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isWideScreen, setIsWideScreen] = useState(false);
+
+  // Check screen size and determine spread mode
+  useEffect(() => {
+    const checkScreenSize = () => {
+      // Consider screens wider than 1024px as wide enough for two-page spread
+      const isWide = window.innerWidth >= 1024;
+      setIsWideScreen(isWide);
+    };
+
+    // Check initial size
+    checkScreenSize();
+
+    // Listen for resize events
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+
+  // Determine if we should use spread mode
+  const shouldUseSpread = () => {
+    switch (settings.spreadMode) {
+      case 'single':
+        return false;
+      case 'double':
+        // Only use double mode if screen is wide enough
+        return isWideScreen;
+      case 'auto':
+      default:
+        return isWideScreen;
+    }
+  };
 
   // Initialize the reader using EPUBService
   useEffect(() => {
@@ -59,11 +93,12 @@ export const Reader: React.FC<ReaderProps> = ({
 
         if (!mounted || !viewerRef.current) return;
 
-        // Create rendition with simplified settings
+        // Create rendition with spread settings based on user preference and screen size
+        const useSpread = shouldUseSpread();
         const rendition = epubBook.renderTo(viewerRef.current, {
           width: '100%',
           height: '100%',
-          spread: 'none',
+          spread: useSpread ? 'auto' : 'none',
           flow: 'paginated'
         });
 
@@ -131,7 +166,7 @@ export const Reader: React.FC<ReaderProps> = ({
         }
       }
     };
-  }, [book.id]); // Use book.id instead of book.downloadUrl to avoid re-initialization
+  }, [book.id, isWideScreen, settings.spreadMode]); // Re-initialize when screen size or spread mode changes
 
   // Apply settings to rendition
   const applySettings = useCallback((rendition: any, settings: ReaderSettings) => {
@@ -346,7 +381,7 @@ export const Reader: React.FC<ReaderProps> = ({
   }
 
   return (
-    <div className={`reader ${settings.theme === 'dark' ? 'reader--dark' : ''}`}>
+    <div className={`reader ${settings.theme === 'dark' ? 'reader--dark' : ''} ${shouldUseSpread() ? 'reader--spread' : ''}`}>
       {/* Loading overlay */}
       {isLoading && (
         <div className="reader__loading-overlay">
@@ -368,6 +403,11 @@ export const Reader: React.FC<ReaderProps> = ({
             ←
           </button>
           <h1 className="reader__title">{book.title}</h1>
+          {shouldUseSpread() && (
+            <span className="reader__spread-indicator" title="Two-page spread mode">
+              📖📖
+            </span>
+          )}
         </div>
 
         <div className="reader__header-right">
@@ -436,6 +476,33 @@ export const Reader: React.FC<ReaderProps> = ({
               <button onClick={handleThemeToggle}>
                 {settings.theme === 'light' ? '🌙 Dark' : '☀️ Light'}
               </button>
+            </div>
+
+            <div className="reader__setting">
+              <label>Page Layout</label>
+              <div className="reader__spread-controls">
+                <button
+                  className={settings.spreadMode === 'single' ? 'active' : ''}
+                  onClick={() => onSettingsChange({ spreadMode: 'single' })}
+                  title="Always show one page at a time"
+                >
+                  📄 Single
+                </button>
+                <button
+                  className={settings.spreadMode === 'auto' ? 'active' : ''}
+                  onClick={() => onSettingsChange({ spreadMode: 'auto' })}
+                  title="Show two pages on wide screens, one page on narrow screens"
+                >
+                  🖥️ Auto
+                </button>
+                <button
+                  className={settings.spreadMode === 'double' ? 'active' : ''}
+                  onClick={() => onSettingsChange({ spreadMode: 'double' })}
+                  title="Always show two pages side by side (if screen allows)"
+                >
+                  📖 Double
+                </button>
+              </div>
             </div>
           </div>
         )}

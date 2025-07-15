@@ -35,6 +35,7 @@ const DEFAULT_READER_SETTINGS = {
   fontFamily: 'serif' as const,
   lineHeight: 1.6,
   margin: 20,
+  spreadMode: 'auto' as const,
 };
 
 export class StorageService {

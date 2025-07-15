@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: 'serif',
   lineHeight: 1.6,
   margin: 20,
+  spreadMode: 'auto',
 };
 
 export const useReader = () => {

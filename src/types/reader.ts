@@ -4,6 +4,7 @@ export interface ReaderSettings {
   fontFamily: string;
   lineHeight: number;
   margin: number;
+  spreadMode: 'auto' | 'single' | 'double';
 }
 
 export interface BookProgress {

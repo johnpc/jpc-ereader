@@ -89,6 +89,12 @@
   max-width: 300px;
 }
 
+.reader__spread-indicator {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-left: 0.5rem;
+}
+
 .reader__button {
   background: none;
   border: 1px solid #ddd;
@@ -215,6 +221,46 @@
   color: white;
 }
 
+.reader__spread-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.reader__spread-controls button {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.reader__spread-controls button:hover {
+  background: #e0e0e0;
+}
+
+.reader__spread-controls button.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.reader--dark .reader__spread-controls button {
+  background: #333;
+  border-color: #555;
+  color: white;
+}
+
+.reader--dark .reader__spread-controls button:hover {
+  background: #444;
+}
+
+.reader--dark .reader__spread-controls button.active {
+  background: #3498db;
+  border-color: #3498db;
+}
+
 .reader__toc {
   position: absolute;
   top: 0;
@@ -323,4 +369,42 @@
   .reader__title {
     max-width: 200px;
   }
+}
+
+/* Wide screen optimizations for two-page spreads */
+@media (min-width: 1024px) {
+  .reader__viewer {
+    /* Ensure the viewer has enough space for two pages */
+    max-width: none;
+  }
+  
+  /* Optimize settings and TOC panels for wider screens */
+  .reader__settings {
+    width: 350px;
+  }
+  
+  .reader__toc {
+    width: 350px;
+  }
+}
+
+/* Styles for when spread mode is active (applied via JavaScript) */
+.reader--spread .reader__nav-area--left {
+  width: 25%; /* Smaller click area on the left */
+}
+
+.reader--spread .reader__nav-area--right {
+  width: 25%; /* Smaller click area on the right */
+}
+
+/* Add a middle area that doesn't trigger navigation in spread mode */
+.reader--spread .reader__viewer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  z-index: 99; /* Below nav areas but above content */
+  pointer-events: none;
 }
