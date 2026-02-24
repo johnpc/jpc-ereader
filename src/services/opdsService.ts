@@ -1,33 +1,18 @@
 import type { Book, OPDSFeed, OPDSEntry } from '../types/book';
 
-// Use the books endpoint instead of the navigation feed
-const OPDS_URL = 'https://cors-proxy.jpc.io/api/proxy?url=https://ebooks.jpc.io/opds/new';
-const BASE_URL = 'https://ebooks.jpc.io';
-const PROXY_BASE = 'https://cors-proxy.jpc.io/api/proxy?url=';
+// Use calibre-web.jpc.io directly (has CORS headers)
+const OPDS_URL = 'https://calibre-web.jpc.io/opds/new';
+const BASE_URL = 'https://calibre-web.jpc.io';
 
 export class OPDSService {
   private resolveUrl(url: string): string {
     if (!url) return '';
     
-    let absoluteUrl: string;
-    
     // Convert to absolute URL if relative
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      absoluteUrl = url;
-    } else {
-      absoluteUrl = BASE_URL + (url.startsWith('/') ? url : '/' + url);
+      return url;
     }
-    
-    // Always proxy external URLs (anything not from localhost)
-    if (absoluteUrl.startsWith('http://localhost') || absoluteUrl.startsWith('https://localhost')) {
-      console.log('🔗 OPDSService: Local URL, not proxying:', absoluteUrl);
-      return absoluteUrl;
-    }
-    
-    // Proxy all external URLs
-    const proxiedUrl = PROXY_BASE + encodeURIComponent(absoluteUrl);
-    console.log('🔗 OPDSService: Resolved URL:', url, '→', proxiedUrl);
-    return proxiedUrl;
+    return BASE_URL + (url.startsWith('/') ? url : '/' + url);
   }
 
   private async fetchXML(url: string): Promise<string> {
